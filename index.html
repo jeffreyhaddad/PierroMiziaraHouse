@@ -70,7 +70,7 @@ const P = {
  p_salon:    {n:'Salon',         x:2.7,   y:3.2,  yaw:200,  to:['p_hall','p_dining','p_chimney']},
  p_dining:   {n:'Dining · bar',  x:6.9,   y:3.7,  yaw:185,  to:['p_salon','p_breakfast']},
  p_breakfast:{n:'Breakfast',     x:5.0,   y:5.7,  yaw:60,   to:['p_hall','p_dining']},
- p_chimney:  {n:'Chimney room',  x:1.5,   y:-2.5, yaw:215,  to:['p_salon']},
+ p_chimney:  {n:'Chimney room',  x:1.5,   y:-2.5, yaw:215,  to:['p_salon'], wx:1.9, wy:-2.05},
  p_terrace:  {n:'Terrace',       x:-6.3,  y:5.6,  yaw:300,  to:['p_arrive','p_pergola','p_pool']},
  p_pergola:  {n:'Pergola',       x:-9.1,  y:12.4, yaw:60,   to:['p_terrace','p_pool']},
  p_pool:     {n:'Pool',          x:-15.0, y:9.0,  yaw:200,  to:['p_terrace','p_pergola']},
@@ -109,7 +109,7 @@ function go(k, keepYaw){ const p = P[k]; fade.classList.add('on');
   load(k).then(im => { setTimeout(() => { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
     if(!keepYaw){ yaw = p.yaw * Math.PI / 180; pitch = -.04; } cur = k; if(mode === 'tour') document.getElementById('title').textContent = p.n; buildHs(); markMap();
     [...bar.children].forEach(b => b.classList.toggle('on', b.dataset.k === k)); dirty = true; fade.classList.remove('on'); p.to.forEach(load); }, 220); }).catch(() => fade.classList.remove('on')); }
-Object.keys(P).forEach(k => { const b = document.createElement('button'); b.textContent = P[k].n; b.dataset.k = k; b.onclick = () => { if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].x, P[k].y, P[k].yaw); else go(k); }; bar.appendChild(b); });
+Object.keys(P).forEach(k => { const b = document.createElement('button'); b.textContent = P[k].n; b.dataset.k = k; b.onclick = () => { if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].wx || P[k].x, P[k].wy || P[k].y, P[k].yaw); else go(k); }; bar.appendChild(b); });
 function buildHs(){ hsBox.innerHTML = ''; P[cur].to.forEach(k => { const b = document.createElement('button'); b.className = 'hs'; b.innerHTML = `<i></i><span>${P[k].n}</span>`; b.dataset.k = k;
   b.onclick = () => { const a = Math.atan2(P[k].x - P[cur].x, P[k].y - P[cur].y); yaw = a; go(k, true); }; hsBox.appendChild(b); }); }
 function placeHs(){ const w = innerWidth, h = innerHeight, tf = Math.tan(fov * Math.PI / 360), asp = w / h;
@@ -123,7 +123,7 @@ const MX = x => (x + 24) * 5, MY = y => (20 - y) * 5; const R = (a,b,c,d,cl) => 
 document.getElementById('map').innerHTML = `<svg viewBox="0 0 180 135" role="img" aria-label="Plan"><style>.h{fill:rgba(244,238,226,.16);stroke:#f4eee2;stroke-width:1}.g{fill:rgba(160,200,210,.18);stroke:#9fc3cc;stroke-width:1}.p{fill:rgba(60,170,190,.5)}.t{fill:none;stroke:rgba(244,238,226,.35);stroke-width:.8;stroke-dasharray:3 2}.pt{fill:rgba(244,238,226,.55)}.pt.on{fill:#d9b48a}</style>
 ${R(0,0,9.05,8.09,'h')}${R(9.05,4.5,10.04,8.09,'h')}${R(-.25,8.34,11.2,19.9,'t')}${R(-.5,-1.26,3.14,0,'h')}${R(-1.43,-5.7,3.14,-1.26,'g')}${R(-21.5,.46,-9.5,4.7,'p')}${R(-9.9,10.3,-5.15,16.9,'t')}${R(-21.6,5,-12.4,8.15,'t')}
 <path id="cone" d="M0,0 L16,-9 A18,18 0 0 1 16,9 Z" fill="rgba(217,180,138,.5)"/>${Object.keys(P).map(k => `<circle class="pt" data-k="${k}" cx="${MX(P[k].x)}" cy="${MY(P[k].y)}" r="3.6"><title>${P[k].n}</title></circle>`).join('')}</svg>`;
-document.querySelectorAll('#map .pt').forEach(c => c.onclick = () => { const k = c.dataset.k; if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].x, P[k].y, P[k].yaw); else go(k); });
+document.querySelectorAll('#map .pt').forEach(c => c.onclick = () => { const k = c.dataset.k; if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].wx || P[k].x, P[k].wy || P[k].y, P[k].yaw); else go(k); });
 function markMap(){ document.querySelectorAll('#map .pt').forEach(c => c.classList.toggle('on', c.dataset.k === cur)); }
 function draw(){ requestAnimationFrame(draw); if(!dirty || !cur || mode !== 'tour') return; dirty = false; const dpr = Math.min(devicePixelRatio || 1, 2), w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
   if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; } gl.viewport(0, 0, w, h); fov = innerWidth < innerHeight ? 95 : 78;
@@ -153,13 +153,20 @@ const dl = new THREE.DirectionalLight(0xfff0dc, 1.15); dl.position.set(sd[0], sd
 const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), new THREE.ShaderMaterial({side:THREE.BackSide, depthWrite:false, uniforms:{t:{value:null}, rot:{value:60 * Math.PI / 180}},
   vertexShader:'varying vec3 d; void main(){ d = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
   fragmentShader:'uniform sampler2D t; uniform float rot; varying vec3 d; void main(){ vec3 b = normalize(vec3(d.x, -d.z, d.y)); float c = cos(rot), s = sin(rot); vec2 r = vec2(c*b.x - s*b.y, s*b.x + c*b.y); float u = atan(r.y, -r.x) / 6.2831853 + .5; float v = atan(b.z, length(r)) / 3.14159265 + .5; vec3 col = texture2D(t, vec2(u, v)).rgb; gl_FragColor = vec4(col * .92, 1.); }'}));
-scene.add(sky); new THREE.TextureLoader().load('walk/sky.jpg', tx => { tx.minFilter = THREE.LinearFilter; tx.generateMipmaps = false; sky.material.uniforms.t.value = tx; });
+scene.add(sky); new THREE.TextureLoader().load('walk/sky2.jpg', tx => { tx.minFilter = THREE.LinearFilter; tx.generateMipmaps = false; sky.material.uniforms.t.value = tx; });
 const FILES = ['arch_in', 'furn_in', 'chimney', 'ext_arch', 'paving', 'ext_furn', 'far', 'veg', 'glass'], prog = FILES.map(() => 0); let loaded = 0, grid = null;
 const loadEl = document.getElementById('load'), loadT = document.getElementById('loadt'), aniso = renderer.capabilities.getMaxAnisotropy();
+const leafTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647, (sd - 1) / 2147483646);
+  for(let i = 0; i < 9; i++){ const a = -Math.PI / 2 + (rnd() - .5) * 2.6, L = 34 + rnd() * 24, x = 64 + Math.cos(a) * L * .55, y = 100 + Math.sin(a) * L * .9; g.save(); g.translate(x, y); g.rotate(a + Math.PI / 2);
+    g.fillStyle = `rgb(${60 + rnd() * 70 | 0},${105 + rnd() * 70 | 0},${35 + rnd() * 35 | 0})`; g.beginPath(); g.ellipse(0, 0, 9 + rnd() * 5, 20 + rnd() * 8, 0, 0, 6.3); g.fill(); g.restore(); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+const floorMats = [], glassMats = [], waterMats = [];
 function fix(root){ root.traverse(o => { if(!o.isMesh) return; const m = o.material, n = m.name || '';
+  if(n.startsWith('bakedfloor_')){ if(m.map) m.map.anisotropy = aniso; o.material = new THREE.MeshBasicMaterial({map:m.map, side:THREE.DoubleSide, combine:THREE.MixOperation, reflectivity:.1}); floorMats.push(o.material); return; }
+  if(n.startsWith('v_leaf')){ o.material = new THREE.MeshLambertMaterial({map:leafTex, alphaTest:.45, side:THREE.DoubleSide}); return; }
   if(n.startsWith('baked_')){ if(m.map){ m.map.anisotropy = aniso; } o.material = new THREE.MeshBasicMaterial({map:m.map, side:THREE.DoubleSide}); }
-  else if(n.startsWith('glass')){ o.material = new THREE.MeshBasicMaterial({color:0xd5e6e8, transparent:true, opacity:.13, depthWrite:false, side:THREE.DoubleSide}); o.renderOrder = 2; }
-  else if(n.startsWith('water')){ o.material = new THREE.MeshBasicMaterial({color:0x49bccb, transparent:true, opacity:.72, depthWrite:false}); o.renderOrder = 1; }
+  else if(n.startsWith('glass')){ o.material = new THREE.MeshBasicMaterial({color:0xcfdfe2, transparent:true, opacity:.2, depthWrite:false, side:THREE.DoubleSide, combine:THREE.MixOperation, reflectivity:.55}); o.renderOrder = 2; glassMats.push(o.material); }
+  else if(n.startsWith('water')){ o.material = new THREE.MeshBasicMaterial({color:0x49bccb, transparent:true, opacity:.74, depthWrite:false, combine:THREE.MixOperation, reflectivity:.3}); o.renderOrder = 1; waterMats.push(o.material); }
   else { o.material = new THREE.MeshLambertMaterial({color:m.color, map:m.map || null, side:THREE.DoubleSide, alphaTest:m.map ? .4 : 0}); } }); }
 const gl = new THREE.GLTFLoader();
 // the models are stored as PNG containers (the file bytes are the pixel rows); unpack them here
@@ -169,7 +176,9 @@ async function unpack(url){ const buf = await (await fetch(url)).arrayBuffer(), 
   const raw = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()), out = new Uint8Array(W * H);
   for(let r = 0; r < H; r++) out.set(raw.subarray(r * (W + 1) + 1, (r + 1) * (W + 1)), r * W);
   const n = new DataView(out.buffer).getUint32(0, true); return out.buffer.slice(4, 4 + n); }
-function done(){ loaded++; loadT.textContent = Math.round(loaded / FILES.length * 100) + '%'; if(loaded >= FILES.length) loadEl.style.display = 'none'; }
+function envAt(x, y, z){ const rt = new THREE.WebGLCubeRenderTarget(256, {generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}); const cc = new THREE.CubeCamera(.1, 900, rt); cc.position.set(x, z, -y); scene.add(cc); cc.update(renderer, scene); scene.remove(cc); return rt.texture; }
+function reflections(){ try{ const out = envAt(-6, 6, 1.6); glassMats.concat(waterMats).forEach(m => { m.envMap = out; m.needsUpdate = true; }); const inn = envAt(4.6, 4.2, 1.3); floorMats.forEach(m => { m.envMap = inn; m.needsUpdate = true; }); }catch(e){} }
+function done(){ loaded++; loadT.textContent = Math.round(loaded / FILES.length * 100) + '%'; if(loaded >= FILES.length){ loadEl.style.display = 'none'; setTimeout(reflections, 300); } }
 if(!window.DecompressionStream){ loadT.textContent = 'This browser is too old for the walkable view. Use 360° points.'; }
 else FILES.forEach(f => unpack('walk/' + f + '.png').then(ab => gl.parse(ab, 'walk/', g => { fix(g.scene); scene.add(g.scene); done(); }, () => done())).catch(() => done()));
 fetch('walk/grid.json').then(r => r.json()).then(g => grid = g).catch(() => {});
