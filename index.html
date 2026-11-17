@@ -85,7 +85,7 @@ const coarse = matchMedia('(pointer:coarse)').matches; let mode = 'walk';
 const mk = (t, f) => { const b = document.createElement('button'); b.className = 'mode'; b.textContent = t; b.onclick = f; bar.appendChild(b); return b; };
 const bWalk = mk('Walk', () => setMode('walk')), bTour = mk('360° points', () => setMode('tour')); mk('Stills', () => stillsEl.classList.add('show'));
 function setMode(m){ mode = m; document.body.className = m; bWalk.style.opacity = m === 'walk' ? 1 : .55; bTour.style.opacity = m === 'tour' ? 1 : .55;
-  document.getElementById('hint').textContent = m === 'walk' ? (coarse ? 'Left stick to walk · drag to look · tap a room to jump there' : 'W A S D to walk · drag to look · Shift to run · click a room to jump there') : 'Drag to look around · click a marker to move';
+  document.getElementById('hint').textContent = m === 'walk' ? (coarse ? 'Left stick to walk · drag to look · tap a room to jump there' : 'W A S D to walk · drag to look · Shift to run · you can walk through furniture') : 'Drag to look around · click a marker to move';
   if(m === 'walk'){ document.getElementById('title').textContent = 'Walkthrough'; [...bar.children].forEach(b => b.classList.remove('on')); } else if(cur){ document.getElementById('title').textContent = P[cur].n; dirty = true; }
   document.getElementById('joy').style.display = (m === 'walk' && coarse) ? 'block' : 'none'; if(window.__walk) window.__walk.active = (m === 'walk'); }
 if(!gl){ document.body.className = 'tour'; document.getElementById('msg').style.display = 'flex'; document.getElementById('msg').onclick = () => stillsEl.classList.add('show'); return; }
