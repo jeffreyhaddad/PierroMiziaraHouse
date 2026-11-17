@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meziara House — 3D Walkthrough</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16120f;--paper:#f4eee2;--accent:#d9b48a;--line:rgba(244,238,226,.22)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--paper);font-family:Jost,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s}
+#fade.on{opacity:1}
+.shade{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.62),rgba(0,0,0,.25) 14%,transparent 24%,transparent 72%,rgba(0,0,0,.55))}
+header{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px;gap:14px;z-index:3;pointer-events:none}
+.brand .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent)}
+.brand h1{font-family:Marcellus,serif;font-weight:400;font-size:clamp(20px,2.6vw,30px);margin:4px 0 0}
+.brand p{margin:6px 0 0;font-size:13px;font-weight:300;opacity:.85}
+#map{width:clamp(130px,19vw,230px);background:rgba(22,18,15,.66);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;padding:8px;pointer-events:auto}
+#map svg{display:block;width:100%;height:auto}
+#map .pt{cursor:pointer}
+.hs{position:fixed;z-index:2;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;background:none;border:0;color:var(--paper);font:inherit;padding:0}
+.hs i{width:42px;height:42px;border-radius:50%;border:2px solid var(--paper);background:rgba(22,18,15,.45);display:block;position:relative;box-shadow:0 2px 14px rgba(0,0,0,.5)}
+.hs i::after{content:"";position:absolute;inset:11px;border-radius:50%;background:var(--paper)}
+.hs span{font-size:12px;letter-spacing:.08em;background:rgba(22,18,15,.7);padding:3px 9px;border-radius:20px;white-space:nowrap}
+.hs:hover i{background:#b8683a;border-color:#b8683a}
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 14px 14px;overflow-x:auto;scrollbar-width:none}
+#bar::-webkit-scrollbar{display:none}
+#bar button{flex:0 0 auto;font:inherit;color:var(--paper);background:rgba(22,18,15,.62);border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:13px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#bar button.on{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+#bar button.mode{background:#b8683a;border-color:#b8683a}
+#msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:var(--ink);padding:30px;text-align:center}
+#stills{position:fixed;inset:0;z-index:6;background:#14110e;overflow:auto;display:none;padding:26px clamp(14px,4vw,48px) 60px;user-select:auto}
+#stills.show{display:block}
+#stills header{position:static;padding:0 0 20px;pointer-events:auto;align-items:baseline}
+#stills h2{font-family:Marcellus,serif;font-weight:400;font-size:clamp(24px,4vw,36px);margin:0}
+#stills .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px}
+#stills figure{margin:0}
+#stills img{width:100%;display:block;border-radius:6px;background:#221d18;aspect-ratio:16/9;object-fit:cover}
+#stills figcaption{font-size:13px;opacity:.8;margin-top:8px;font-weight:300}
+#stills button{font:inherit;color:var(--paper);background:transparent;border:1px solid var(--line);border-radius:9px;padding:8px 13px;cursor:pointer}
+@media (max-width:640px){header{padding:12px 14px}.brand p{display:none}.hs i{width:36px;height:36px}.hs i::after{inset:9px}}
+#walk{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;transition:filter .6s}
+body.walk #gl,body.walk #hs{display:none}
+body.tour #walk,body.tour #joy,body.tour #load{display:none!important}
+#load{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;background:rgba(22,18,15,.8);border:1px solid var(--line);border-radius:12px;padding:16px 22px;text-align:center;font-size:14px}
+#load b{display:block;font-family:Marcellus,serif;font-weight:400;font-size:20px;margin-bottom:6px}
+#joy{position:fixed;left:20px;bottom:84px;width:110px;height:110px;border-radius:50%;border:1px solid var(--line);background:rgba(22,18,15,.4);display:none;z-index:4;touch-action:none}
+#joy i{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px;border-radius:50%;background:rgba(244,238,226,.75)}
+</style>
+</head>
+<body class="walk">
+<canvas id="walk"></canvas><canvas id="gl"></canvas><div class="shade"></div><div id="fade"></div>
+<header>
+  <div class="brand"><div class="k">Home Renovation · Meziara, Lebanon</div><h1 id="title">Arrival</h1><p id="hint"></p></div>
+  <div id="map"></div>
+</header>
+<div id="hs"></div><div id="load"><b>Loading the house…</b><span id="loadt">0%</span></div><div id="joy"><i></i></div>
+<div id="bar"></div>
+<div id="msg">This browser can't show the 360° view. Use the Stills button to see the renders.</div>
+<div id="stills"><header><h2>Stills</h2><button id="sClose">✕ Close</button></header><div class="grid" id="sGrid"></div></div>
+<script>
+(function(){
+// plan frame: x = right on the architect's plan, y = up. panorama centre looks along +y, +x is to the right.
+const P = {
+ p_arrive:   {n:'Arrival',       x:-3.6,  y:5.2,  yaw:60,   to:['p_hall','p_terrace']},
+ p_hall:     {n:'Entrance hall', x:1.5,   y:6.3,  yaw:120,  to:['p_arrive','p_salon','p_breakfast']},
+ p_salon:    {n:'Salon',         x:2.7,   y:3.2,  yaw:200,  to:['p_hall','p_dining','p_chimney']},
+ p_dining:   {n:'Dining · bar',  x:6.9,   y:3.7,  yaw:185,  to:['p_salon','p_breakfast']},
+ p_breakfast:{n:'Breakfast',     x:5.0,   y:5.7,  yaw:60,   to:['p_hall','p_dining']},
+ p_chimney:  {n:'Chimney room',  x:1.5,   y:-2.5, yaw:215,  to:['p_salon']},
+ p_terrace:  {n:'Terrace',       x:-6.3,  y:5.6,  yaw:300,  to:['p_arrive','p_pergola','p_pool']},
+ p_pergola:  {n:'Pergola',       x:-9.1,  y:12.4, yaw:60,   to:['p_terrace','p_pool']},
+ p_pool:     {n:'Pool',          x:-15.0, y:9.0,  yaw:200,  to:['p_terrace','p_pergola']},
+};
+const STILLS = [['aerial','Overview'],['entrance','Entrance'],['louver','Entrance hall'],['salon','Salon'],['dining','Dining · bar'],['breakfast','Breakfast'],['chimney','Chimney room'],['glass','Chimney room — glass roof'],['terrace','Outdoor living'],['pergola','Pergola · BBQ dining'],['pool','Pool']];
+const cv = document.getElementById('gl'), gl = cv.getContext('webgl2', {antialias:false});
+const bar = document.getElementById('bar'), hsBox = document.getElementById('hs'), fade = document.getElementById('fade');
+// stills gallery
+const sg = document.getElementById('sGrid'); STILLS.forEach(([f,c]) => { const fg = document.createElement('figure'); fg.innerHTML = `<img loading="lazy" src="renders/${f}.jpg" alt="${c}"><figcaption>${c}</figcaption>`; sg.appendChild(fg); });
+const stillsEl = document.getElementById('stills'); document.getElementById('sClose').onclick = () => stillsEl.classList.remove('show');
+const coarse = matchMedia('(pointer:coarse)').matches; let mode = 'walk';
+const mk = (t, f) => { const b = document.createElement('button'); b.className = 'mode'; b.textContent = t; b.onclick = f; bar.appendChild(b); return b; };
+const bWalk = mk('Walk', () => setMode('walk')), bTour = mk('360° points', () => setMode('tour')); mk('Stills', () => stillsEl.classList.add('show'));
+function setMode(m){ mode = m; document.body.className = m; bWalk.style.opacity = m === 'walk' ? 1 : .55; bTour.style.opacity = m === 'tour' ? 1 : .55;
+  document.getElementById('hint').textContent = m === 'walk' ? (coarse ? 'Left stick to walk · drag to look · tap a room to jump there' : 'W A S D to walk · drag to look · Shift to run · click a room to jump there') : 'Drag to look around · click a marker to move';
+  if(m === 'walk'){ document.getElementById('title').textContent = 'Walkthrough'; [...bar.children].forEach(b => b.classList.remove('on')); } else if(cur){ document.getElementById('title').textContent = P[cur].n; dirty = true; }
+  document.getElementById('joy').style.display = (m === 'walk' && coarse) ? 'block' : 'none'; if(window.__walk) window.__walk.active = (m === 'walk'); }
+if(!gl){ document.body.className = 'tour'; document.getElementById('msg').style.display = 'flex'; document.getElementById('msg').onclick = () => stillsEl.classList.add('show'); return; }
+const vs = `#version 300 es
+in vec2 p; out vec2 s; void main(){ s = p; gl_Position = vec4(p,0.,1.); }`;
+const fs = `#version 300 es
+precision highp float; in vec2 s; out vec4 o; uniform sampler2D t; uniform float yaw, pitch, tf, asp;
+void main(){ vec3 f = vec3(sin(yaw)*cos(pitch), cos(yaw)*cos(pitch), sin(pitch)); vec3 r = vec3(cos(yaw), -sin(yaw), 0.); vec3 u = vec3(-sin(yaw)*sin(pitch), -cos(yaw)*sin(pitch), cos(pitch));
+ vec3 d = normalize(f + r*s.x*tf*asp + u*s.y*tf); float lon = atan(d.x, d.y), lat = asin(clamp(d.z,-1.,1.));
+ o = texture(t, vec2(.5 + lon/6.2831853, .5 + lat/3.14159265)); }`;
+function sh(type, src){ const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; }
+const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(pr, n); const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([20,17,14,255]));
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+let yaw = 0, pitch = 0, fov = 78, cur = null, dirty = true; const cache = {};
+function load(k){ return cache[k] || (cache[k] = new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = `pano/${k}.jpg`; })); }
+function go(k, keepYaw){ const p = P[k]; fade.classList.add('on');
+  load(k).then(im => { setTimeout(() => { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+    if(!keepYaw){ yaw = p.yaw * Math.PI / 180; pitch = -.04; } cur = k; if(mode === 'tour') document.getElementById('title').textContent = p.n; buildHs(); markMap();
+    [...bar.children].forEach(b => b.classList.toggle('on', b.dataset.k === k)); dirty = true; fade.classList.remove('on'); p.to.forEach(load); }, 220); }).catch(() => fade.classList.remove('on')); }
+Object.keys(P).forEach(k => { const b = document.createElement('button'); b.textContent = P[k].n; b.dataset.k = k; b.onclick = () => { if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].x, P[k].y, P[k].yaw); else go(k); }; bar.appendChild(b); });
+function buildHs(){ hsBox.innerHTML = ''; P[cur].to.forEach(k => { const b = document.createElement('button'); b.className = 'hs'; b.innerHTML = `<i></i><span>${P[k].n}</span>`; b.dataset.k = k;
+  b.onclick = () => { const a = Math.atan2(P[k].x - P[cur].x, P[k].y - P[cur].y); yaw = a; go(k, true); }; hsBox.appendChild(b); }); }
+function placeHs(){ const w = innerWidth, h = innerHeight, tf = Math.tan(fov * Math.PI / 360), asp = w / h;
+  const f = [Math.sin(yaw)*Math.cos(pitch), Math.cos(yaw)*Math.cos(pitch), Math.sin(pitch)], r = [Math.cos(yaw), -Math.sin(yaw), 0], u = [-Math.sin(yaw)*Math.sin(pitch), -Math.cos(yaw)*Math.sin(pitch), Math.cos(pitch)];
+  [...hsBox.children].forEach(b => { const t = P[b.dataset.k], c = P[cur]; let dx = t.x - c.x, dy = t.y - c.y; const L = Math.hypot(dx, dy); const d = [dx / L, dy / L, -Math.min(.75, 1.45 / Math.max(L, 2))];
+    const z = d[0]*f[0] + d[1]*f[1] + d[2]*f[2]; if(z < .15){ b.style.display = 'none'; return; }
+    const sx = (d[0]*r[0] + d[1]*r[1]) / z / (tf * asp), sy = (d[0]*u[0] + d[1]*u[1] + d[2]*u[2]) / z / tf; if(Math.abs(sx) > 1.05 || Math.abs(sy) > 1.05){ b.style.display = 'none'; return; }
+    b.style.display = 'flex'; b.style.left = (sx * .5 + .5) * w + 'px'; b.style.top = (.5 - sy * .5) * h + 'px'; }); }
+// mini map
+const MX = x => (x + 24) * 5, MY = y => (20 - y) * 5; const R = (a,b,c,d,cl) => `<rect x="${MX(a)}" y="${MY(d)}" width="${(c-a)*5}" height="${(d-b)*5}" class="${cl}"/>`;
+document.getElementById('map').innerHTML = `<svg viewBox="0 0 180 135" role="img" aria-label="Plan"><style>.h{fill:rgba(244,238,226,.16);stroke:#f4eee2;stroke-width:1}.g{fill:rgba(160,200,210,.18);stroke:#9fc3cc;stroke-width:1}.p{fill:rgba(60,170,190,.5)}.t{fill:none;stroke:rgba(244,238,226,.35);stroke-width:.8;stroke-dasharray:3 2}.pt{fill:rgba(244,238,226,.55)}.pt.on{fill:#d9b48a}</style>
+${R(0,0,9.05,8.09,'h')}${R(9.05,4.5,10.04,8.09,'h')}${R(-.25,8.34,11.2,19.9,'t')}${R(-.5,-1.26,3.14,0,'h')}${R(-1.43,-5.7,3.14,-1.26,'g')}${R(-21.5,.46,-9.5,4.7,'p')}${R(-9.9,10.3,-5.15,16.9,'t')}${R(-21.6,5,-12.4,8.15,'t')}
+<path id="cone" d="M0,0 L16,-9 A18,18 0 0 1 16,9 Z" fill="rgba(217,180,138,.5)"/>${Object.keys(P).map(k => `<circle class="pt" data-k="${k}" cx="${MX(P[k].x)}" cy="${MY(P[k].y)}" r="3.6"><title>${P[k].n}</title></circle>`).join('')}</svg>`;
+document.querySelectorAll('#map .pt').forEach(c => c.onclick = () => { const k = c.dataset.k; if(mode === 'walk' && window.__walk) window.__walk.teleport(P[k].x, P[k].y, P[k].yaw); else go(k); });
+function markMap(){ document.querySelectorAll('#map .pt').forEach(c => c.classList.toggle('on', c.dataset.k === cur)); }
+function draw(){ requestAnimationFrame(draw); if(!dirty || !cur || mode !== 'tour') return; dirty = false; const dpr = Math.min(devicePixelRatio || 1, 2), w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+  if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; } gl.viewport(0, 0, w, h); fov = innerWidth < innerHeight ? 95 : 78;
+  gl.uniform1f(U('yaw'), yaw); gl.uniform1f(U('pitch'), pitch); gl.uniform1f(U('tf'), Math.tan(fov * Math.PI / 360)); gl.uniform1f(U('asp'), w / h); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); placeHs();
+  document.getElementById('cone').setAttribute('transform', `translate(${MX(P[cur].x)},${MY(P[cur].y)}) rotate(${yaw * 180 / Math.PI - 90})`); }
+let last = null; cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); last = [e.clientX, e.clientY]; });
+cv.addEventListener('pointermove', e => { if(!last) return; const k = fov * Math.PI / 180 / innerHeight; yaw -= (e.clientX - last[0]) * k; pitch = Math.max(-1.2, Math.min(1.2, pitch + (e.clientY - last[1]) * k)); last = [e.clientX, e.clientY]; dirty = true; });
+['pointerup','pointercancel'].forEach(n => cv.addEventListener(n, () => last = null)); addEventListener('resize', () => dirty = true);
+addEventListener('keydown', e => { if(e.key === 'ArrowLeft'){ yaw -= .12; dirty = true; } if(e.key === 'ArrowRight'){ yaw += .12; dirty = true; } });
+window.__tour = {P, MX, MY, setCone:(x, y, yw) => document.getElementById('cone').setAttribute('transform', `translate(${MX(x)},${MY(y)}) rotate(${yw * 180 / Math.PI - 90})`)};
+go('p_arrive'); draw(); setMode('walk');
+})();
+</script>
+
+<script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
+<script>
+(function(){
+if(!window.THREE || !THREE.GLTFLoader){ document.getElementById('loadt').textContent = 'The walkable view could not load here. Use 360° points.'; return; }
+const cv = document.getElementById('walk'), coarse = matchMedia('(pointer:coarse)').matches;
+let renderer; try{ renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, powerPreference:'high-performance'}); }catch(e){ document.getElementById('loadt').textContent = 'The walkable view is not supported in this browser. Use 360° points.'; return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, coarse ? 1.5 : 2)); renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(72, 1, .05, 900); cam.rotation.order = 'YXZ';
+// plan (x, y, up z)  ->  three (x, z-up as y, -y)
+const sunAz = 250 * Math.PI / 180, sunEl = 38 * Math.PI / 180, sd = [Math.cos(sunAz) * Math.cos(sunEl), Math.sin(sunAz) * Math.cos(sunEl), Math.sin(sunEl)];
+const dl = new THREE.DirectionalLight(0xfff0dc, 1.15); dl.position.set(sd[0], sd[2], -sd[1]); scene.add(dl); scene.add(new THREE.HemisphereLight(0xcfe0f5, 0x6f6a55, .75));
+const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 48, 24), new THREE.ShaderMaterial({side:THREE.BackSide, depthWrite:false, uniforms:{t:{value:null}, rot:{value:60 * Math.PI / 180}},
+  vertexShader:'varying vec3 d; void main(){ d = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+  fragmentShader:'uniform sampler2D t; uniform float rot; varying vec3 d; void main(){ vec3 b = normalize(vec3(d.x, -d.z, d.y)); float c = cos(rot), s = sin(rot); vec2 r = vec2(c*b.x - s*b.y, s*b.x + c*b.y); float u = atan(r.y, -r.x) / 6.2831853 + .5; float v = atan(b.z, length(r)) / 3.14159265 + .5; vec3 col = texture2D(t, vec2(u, v)).rgb; gl_FragColor = vec4(col * .92, 1.); }'}));
+scene.add(sky); new THREE.TextureLoader().load('walk/sky.jpg', tx => { tx.minFilter = THREE.LinearFilter; tx.generateMipmaps = false; sky.material.uniforms.t.value = tx; });
+const FILES = ['arch_in', 'furn_in', 'chimney', 'ext_arch', 'paving', 'ext_furn', 'far', 'veg', 'glass'], prog = FILES.map(() => 0); let loaded = 0, grid = null;
+const loadEl = document.getElementById('load'), loadT = document.getElementById('loadt'), aniso = renderer.capabilities.getMaxAnisotropy();
+function fix(root){ root.traverse(o => { if(!o.isMesh) return; const m = o.material, n = m.name || '';
+  if(n.startsWith('baked_')){ if(m.map){ m.map.anisotropy = aniso; } o.material = new THREE.MeshBasicMaterial({map:m.map, side:THREE.DoubleSide}); }
+  else if(n.startsWith('glass')){ o.material = new THREE.MeshBasicMaterial({color:0xd5e6e8, transparent:true, opacity:.13, depthWrite:false, side:THREE.DoubleSide}); o.renderOrder = 2; }
+  else if(n.startsWith('water')){ o.material = new THREE.MeshBasicMaterial({color:0x49bccb, transparent:true, opacity:.72, depthWrite:false}); o.renderOrder = 1; }
+  else { o.material = new THREE.MeshLambertMaterial({color:m.color, map:m.map || null, side:THREE.DoubleSide, alphaTest:m.map ? .4 : 0}); } }); }
+const gl = new THREE.GLTFLoader();
+// the models are stored as PNG containers (the file bytes are the pixel rows); unpack them here
+async function unpack(url){ const buf = await (await fetch(url)).arrayBuffer(), dv = new DataView(buf); let p = 8, W = 0, H = 0; const parts = [];
+  while(p < buf.byteLength){ const len = dv.getUint32(p), type = String.fromCharCode(dv.getUint8(p + 4), dv.getUint8(p + 5), dv.getUint8(p + 6), dv.getUint8(p + 7));
+    if(type === 'IHDR'){ W = dv.getUint32(p + 8); H = dv.getUint32(p + 12); } else if(type === 'IDAT') parts.push(new Uint8Array(buf, p + 8, len)); p += 12 + len; }
+  const raw = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()), out = new Uint8Array(W * H);
+  for(let r = 0; r < H; r++) out.set(raw.subarray(r * (W + 1) + 1, (r + 1) * (W + 1)), r * W);
+  const n = new DataView(out.buffer).getUint32(0, true); return out.buffer.slice(4, 4 + n); }
+function done(){ loaded++; loadT.textContent = Math.round(loaded / FILES.length * 100) + '%'; if(loaded >= FILES.length) loadEl.style.display = 'none'; }
+if(!window.DecompressionStream){ loadT.textContent = 'This browser is too old for the walkable view. Use 360° points.'; }
+else FILES.forEach(f => unpack('walk/' + f + '.png').then(ab => gl.parse(ab, 'walk/', g => { fix(g.scene); scene.add(g.scene); done(); }, () => done())).catch(() => done()));
+fetch('walk/grid.json').then(r => r.json()).then(g => grid = g).catch(() => {});
+function blocked(x, y){ if(!grid) return false; const r = .22; for(let dy = -r; dy <= r + .001; dy += .11) for(let dx = -r; dx <= r + .001; dx += .11){ const i = Math.floor((x + dx - grid.x0) / grid.cs), j = Math.floor((y + dy - grid.y0) / grid.cs); if(i < 0 || j < 0 || i >= grid.nx || j >= grid.ny) return true; if(grid.rows[j].charCodeAt(i) === 49) return true; } return false; }
+// fire glow
+const fires = [[.95, -.63, .72], [1.65, -.63, .72]].map(p => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.5, .42), new THREE.MeshBasicMaterial({color:0xff7a22, transparent:true, opacity:.75, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide})); m.position.set(p[0], p[2], -p[1]); scene.add(m); return m; });
+const st = {x:-3.6, y:5.2, yaw:60 * Math.PI / 180, pitch:-.03}; const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; }); addEventListener('keyup', e => { keys[e.code] = false; });
+let last = null; cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); last = [e.clientX, e.clientY]; });
+cv.addEventListener('pointermove', e => { if(!last) return; st.yaw -= (e.clientX - last[0]) * .0042; st.pitch = Math.max(-1.25, Math.min(1.25, st.pitch + (e.clientY - last[1]) * .0042)); last = [e.clientX, e.clientY]; });
+['pointerup', 'pointercancel'].forEach(n => cv.addEventListener(n, () => last = null));
+const joy = document.getElementById('joy'), knob = joy.firstElementChild, jv = {x:0, y:0};
+joy.addEventListener('pointerdown', e => joy.setPointerCapture(e.pointerId));
+joy.addEventListener('pointermove', e => { if(!joy.hasPointerCapture(e.pointerId)) return; const r = joy.getBoundingClientRect(); let x = (e.clientX - r.left - 55) / 45, y = (e.clientY - r.top - 55) / 45; const l = Math.hypot(x, y); if(l > 1){ x /= l; y /= l; } jv.x = x; jv.y = y; knob.style.transform = `translate(${x * 33}px,${y * 33}px)`; });
+const jEnd = () => { jv.x = jv.y = 0; knob.style.transform = ''; }; joy.addEventListener('pointerup', jEnd); joy.addEventListener('pointercancel', jEnd);
+const api = window.__walk = {active:true, teleport:(x, y, yawDeg) => { st.x = x; st.y = y; st.yaw = yawDeg * Math.PI / 180; st.pitch = -.03; }, st};
+function resize(){ const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < h ? 86 : 72; cam.updateProjectionMatrix(); } addEventListener('resize', resize); resize();
+const clock = new THREE.Clock(); let bright = 0;
+function frame(){ requestAnimationFrame(frame); const dt = Math.min(.05, clock.getDelta()); if(!api.active) return;
+  let f = 0, s = 0; if(keys.KeyW || keys.ArrowUp) f += 1; if(keys.KeyS || keys.ArrowDown) f -= 1; if(keys.KeyA || keys.ArrowLeft) s -= 1; if(keys.KeyD || keys.ArrowRight) s += 1; f -= jv.y; s += jv.x;
+  const l = Math.hypot(f, s); if(l > 1){ f /= l; s /= l; } const sp = (keys.ShiftLeft || keys.ShiftRight ? 4.2 : 2.1) * dt, sy = Math.sin(st.yaw), cy = Math.cos(st.yaw);
+  const dx = (sy * f + cy * s) * sp, dy = (cy * f - sy * s) * sp; if(!blocked(st.x + dx, st.y)) st.x += dx; if(!blocked(st.x, st.y + dy)) st.y += dy;
+  cam.position.set(st.x, 1.6, -st.y); cam.rotation.set(st.pitch, -st.yaw, 0); sky.position.copy(cam.position);
+  const t = clock.elapsedTime; fires.forEach((m, i) => { m.quaternion.copy(cam.quaternion); m.scale.set(1, .8 + .35 * Math.abs(Math.sin(t * 9 + i * 2)), 1); m.material.opacity = .55 + .25 * Math.sin(t * 13 + i); });
+  const inside = (st.x > -.3 && st.x < 10.1 && st.y > -1.3 && st.y < 8.2) ? 1 : 0; bright += (inside - bright) * Math.min(1, dt * 2.5); cv.style.filter = bright > .02 ? `brightness(${(1 + .32 * bright).toFixed(3)})` : '';
+  renderer.render(scene, cam); if(window.__tour) window.__tour.setCone(st.x, st.y, st.yaw); }
+frame();
+})();
+</script>
+</body>
+</html>
